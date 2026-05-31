@@ -1,47 +1,49 @@
 import os
 import asyncio
+import logging
 from telegram import Bot
 from playwright.async_api import async_playwright
 
+# Configuração de logs para diagnóstico rápido no console da Render
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 async def main():
-    bot = Bot(token=os.getenv("TOKEN"))
+    token = os.getenv("TOKEN")
     chat_id = os.getenv("CHAT_ID")
     
-    await bot.send_message(chat_id=chat_id, text="🚀 BOT ATIVO: Monitorização de Sinais...")
+    if not token or not chat_id:
+        logger.error("Token ou Chat ID em falta nas variáveis de ambiente!")
+        return
 
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(
-            headless=True,
-            args=["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"]
-        )
-        page = await browser.new_page()
-        
-        # Acede ao site
-        await page.goto("https://www.bantubet.co.ao/casino/game/aviator")
-        
-        # O loop principal agora é mais "calmo"
-        last_odd = None
-        while True:
-            try:
-                # Aqui entra a tua lógica de "scraping"
-                # Exemplo: vamos esperar pelo elemento que mostra a odd
-                # Ajusta o seletor (ex: '.payout') conforme o elemento real do site
-                odd_element = await page.query_selector(".payout") 
-                
-                if odd_element:
-                    current_odd = await odd_element.inner_text()
-                    
-                    # Só envia mensagem se a odd mudar (para evitar spam)
-                    if current_odd != last_odd:
-                        await bot.send_message(chat_id=chat_id, text=f"📊 Nova Odd: {current_odd}")
-                        last_odd = current_odd
-                
-            except Exception as e:
-                print(f"Erro na monitorização: {e}")
+    bot = Bot(token=token)
+    
+    try:
+        logger.info("A iniciar o Playwright...")
+        async with async_playwright() as p:
+            # Lançamento padrão otimizado para a Render
+            browser = await p.chromium.launch(
+                headless=True,
+                args=["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"]
+            )
+            page = await browser.new_page()
             
-            # Espera 10 segundos antes de verificar novamente
-            await asyncio.sleep(10)
+            logger.info("Acedendo ao site...")
+            await page.goto("https://www.bantubet.co.ao/casino/game/aviator", timeout=60000)
+            
+            await bot.send_message(chat_id=chat_id, text="✅ Bot ligado e página carregada!")
+            
+            # Manter o processo ativo
+            while True:
+                await asyncio.sleep(60)
+                
+    except Exception as e:
+        logger.error(f"Erro crítico: {str(e)}")
+        # Tenta avisar no Telegram caso ocorra um erro
+        try:
+            await bot.send_message(chat_id=chat_id, text=f"❌ Erro: {str(e)[:50]}")
+        except:
+            pass
 
 if __name__ == "__main__":
     asyncio.run(main())
-    
