@@ -7,19 +7,19 @@ async def main():
     bot = Bot(token=os.getenv("TOKEN"))
     chat_id = os.getenv("CHAT_ID")
     
-    await bot.send_message(chat_id=chat_id, text="🚀 BOT INICIADO EM MODO ASSÍNCRONO")
+    await bot.send_message(chat_id=chat_id, text="🚀 BOT A TENTAR LIGAR...")
     
     async with async_playwright() as p:
-        # A chave para a Render: não especificar path fixo e usar as flags corretas
+        # Lançamento simples - a Render deteta o navegador do sistema
         browser = await p.chromium.launch(
-            headless=True, 
+            headless=True,
             args=["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"]
         )
         page = await browser.new_page()
         await page.goto("https://www.bantubet.co.ao/casino/game/aviator")
-        await page.wait_for_timeout(10000)
+        await page.wait_for_timeout(5000)
         
-        await bot.send_message(chat_id=chat_id, text="✅ Página da BantuBet carregada!")
+        await bot.send_message(chat_id=chat_id, text="✅ BOT CONECTADO!")
         await browser.close()
 
 if __name__ == "__main__":
